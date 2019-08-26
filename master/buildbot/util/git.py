@@ -79,7 +79,7 @@ class GitMixin:
             return
 
         try:
-            version = version_stdout.strip().split(' ')[2]
+            version = version_stdout.strip().split(' ')[-1]
         except IndexError:
             return
 

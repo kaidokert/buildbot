@@ -9,7 +9,7 @@ from buildbot.master import BuildMaster
 
 basedir = os.environ.get("BUILDBOT_BASEDIR",
     os.path.abspath(os.path.dirname(__file__)))
-configfile = 'master.cfg'
+configfile = '/var/lib/buildbot/master.cfg'
 
 # note: this line is matched against to check that this is a buildmaster
 # directory; do not edit it.

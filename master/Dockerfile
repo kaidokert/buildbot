@@ -20,7 +20,6 @@ MAINTAINER  Buildbot maintainers
 ENV         security_updates_as_of 2018-04-10
 
 
-COPY . /usr/src/buildbot
 RUN \
     echo @edgecommunity http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
     echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
@@ -34,18 +33,32 @@ RUN \
         alpine-sdk \
         tar \
         tzdata \
-        curl && \
-# install pip dependencies
+        curl
+
+RUN \
     pip3 install --upgrade pip setuptools wheel && \
+    mkdir -p /usr/src/buildbot/ && \
+    ls -laSh /usr/src && \
+    ls -laSh /usr/src/buildbot
+
+COPY requirements-docker-extras.txt README.rst \
+    setup.cfg setup.py \
+    /usr/src/buildbot/
+
+RUN \
     pip3 install "buildbot[bundle,tls]" && \
-    pip3 install -r /usr/src/buildbot/requirements-docker-extras.txt && \
-    pip3 install "/usr/src/buildbot" && \
+    pip3 install -r /usr/src/buildbot/requirements-docker-extras.txt
+
+COPY docker  /usr/src/buildbot/docker
+COPY buildbot  /usr/src/buildbot/buildbot
+
+RUN \
+    pip3 install "/usr/src/buildbot"
+RUN \
     mkdir -p wheels && \
     pip3 list --format freeze | grep -v '^buildbot=' > wheels/wheels.txt && \
     cd wheels && \
     pip3 wheel -r wheels.txt
-
-
 
 #==============================================================================================
 # Build the final image here.  Use build artifacts from the buildbot-build
@@ -61,8 +74,6 @@ MAINTAINER  Buildbot maintainers
 # that everything is rebuilt
 ENV         security_updates_as_of 2018-04-11
 
-
-COPY . /usr/src/buildbot
 
 # Build wheels in other container using the Dockerfile.build
 # and copy them into this container.
@@ -81,14 +92,27 @@ RUN \
         tar \
         tzdata \
         curl \
-        openssh && \
-# install pip dependencies
-    pip3 install --upgrade pip setuptools && \
-    pip3 install /wheels/*.whl && \
+        openssh
+
+RUN \
+    pip3 install --upgrade pip setuptools
+
+RUN \
+    pip3 install /wheels/*.whl
+
+COPY requirements-docker-extras.txt README.rst \
+    setup.cfg setup.py \
+    /usr/src/buildbot/
+COPY docker  /usr/src/buildbot/docker
+COPY buildbot  /usr/src/buildbot/buildbot
+
+RUN \
     pip3 install "buildbot[bundle,tls]" && \
     pip3 install "/usr/src/buildbot" && \
     rm -r /root/.cache /wheels
 
+RUN mkdir -p /var/lib/buildbot
+COPY master.cfg /var/lib/buildbot
 
 WORKDIR /var/lib/buildbot
 CMD ["dumb-init", "/usr/src/buildbot/docker/start_buildbot.sh"]
